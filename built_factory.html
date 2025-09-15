@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Loan Application System</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f7fa; }
+    .card { background: #fff; padding: 16px; margin-bottom: 14px; border: 1px solid #ddd; border-radius: 8px; }
+    label { display: block; margin-top: 8px; }
+    input, select { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 12px; padding: 10px; background: teal; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+    .stage { margin-top: 6px; font-size: 13px; color: gray; }
+  </style>
+</head>
+<body>
+  <h1>Loan Application System (Factory Method + Workflow)</h1>
+
+  <div class="card">
+    <h3>Apply for Loan</h3>
+    <label>Customer Name</label>
+    <input id="name" placeholder="Enter full name">
+
+    <label>Loan Type</label>
+    <select id="loanType">
+      <option value="home">Home Loan</option>
+      <option value="car">Car Loan</option>
+      <option value="personal">Personal Loan</option>
+    </select>
+
+    <label>Loan Amount</label>
+    <input id="amount" type="number" value="100000">
+
+    <button id="applyBtn">Submit Application</button>
+  </div>
+
+  <h3>Applications</h3>
+  <div id="applications"></div>
+
+  <script>
+    // ------------------
+    // Loan Base + Subclasses
+    // ------------------
+    class Loan {
+      constructor(customer, amount) {
+        this.customer = customer;
+        this.amount = amount;
+        this.stage = "Applied";
+        this.documents = [];
+      }
+      requiredDocs() { return []; }
+      interestRate() { return 0; }
+      nextStage() {
+        const stages = ["Applied", "Documents Verified", "Credit Checked", "Approved", "Disbursed"];
+        const idx = stages.indexOf(this.stage);
+        if (idx < stages.length - 1) {
+          this.stage = stages[idx + 1];
+        }
+      }
+    }
+
+    class HomeLoan extends Loan {
+      requiredDocs() { return ["ID Proof", "Income Proof", "Property Papers"]; }
+      interestRate() { return 7.5; }
+    }
+
+    class CarLoan extends Loan {
+      requiredDocs() { return ["ID Proof", "Income Proof", "Car Invoice"]; }
+      interestRate() { return 9.0; }
+    }
+
+    class PersonalLoan extends Loan {
+      requiredDocs() { return ["ID Proof", "Income Proof"]; }
+      interestRate() { return 12.5; }
+    }
+
+    // ------------------
+    // Factory Method
+    // ------------------
+    class LoanFactory {
+      static createLoan(type, customer, amount) {
+        switch(type) {
+          case 'home': return new HomeLoan(customer, amount);
+          case 'car': return new CarLoan(customer, amount);
+          case 'personal': return new PersonalLoan(customer, amount);
+          default: throw new Error("Unknown loan type");
+        }
+      }
+    }
+
+    // ------------------
+    // UI
+    // ------------------
+    const appsDiv = document.getElementById('applications');
+    const applyBtn = document.getElementById('applyBtn');
+
+    applyBtn.addEventListener('click', () => {
+      const name = document.getElementById('name').value || "Unnamed";
+      const type = document.getElementById('loanType').value;
+      const amount = Number(document.getElementById('amount').value);
+
+      const loan = LoanFactory.createLoan(type, name, amount);
+
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = `
+        <strong>${loan.customer}</strong> applied for <b>${loan.constructor.name}</b><br>
+        Amount: ₹${loan.amount} | Interest: ${loan.interestRate()}%<br>
+        Required Docs: ${loan.requiredDocs().join(", ")}<br>
+        <div class="stage">Stage: <span>${loan.stage}</span></div>
+        <button class="nextBtn">Next Stage</button>
+      `;
+
+      div.querySelector('.nextBtn').addEventListener('click', () => {
+        loan.nextStage();
+        div.querySelector('.stage span').textContent = loan.stage;
+      });
+
+      appsDiv.appendChild(div);
+    });
+  </script>
+</body>
+</html>
